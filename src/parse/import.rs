@@ -43,45 +43,37 @@ impl<'a> Parser<'a> {
 
         let name = path_buf.file_name().unwrap_or_else(|| OsStr::new(".."));
 
-        let paths = [
-            path_buf.with_file_name(name).with_extension("scss"),
-            path_buf
-                .with_file_name(format!("_{}", name.to_str().unwrap()))
-                .with_extension("scss"),
-            path_buf.clone(),
-            path_buf.join("index.scss"),
-            path_buf.join("_index.scss"),
-        ];
-
-        for name in &paths {
-            if name.is_file() {
-                return Some(name.to_path_buf());
-            }
-        }
-
-        for path in &self.options.load_paths {
-            let paths: Vec<PathBuf> = if path.is_dir() {
-                vec![
-                    path.join(format!("{}.scss", name.to_str().unwrap())),
-                    path.join(format!("_{}.scss", name.to_str().unwrap())),
-                    path.join("index.scss"),
-                    path.join("_index.scss"),
-                ]
-            } else {
-                vec![
-                    path.to_path_buf(),
-                    path.with_file_name(name).with_extension("scss"),
-                    path.with_file_name(format!("_{}", name.to_str().unwrap()))
-                        .with_extension("scss"),
-                    path.join("index.scss"),
-                    path.join("_index.scss"),
-                ]
-            };
-
-            for name in paths {
+        macro_rules! try_path {
+            ($name:expr) => {
+                let name = $name;
                 if name.is_file() {
                     return Some(name);
                 }
+            };
+        }
+
+        try_path!(path_buf.with_file_name(name).with_extension("scss"));
+        try_path!(path_buf
+            .with_file_name(format!("_{}", name.to_str().unwrap()))
+            .with_extension("scss"));
+        try_path!(path_buf.clone());
+        try_path!(path_buf.join("index.scss"));
+        try_path!(path_buf.join("_index.scss"));
+
+        for path in &self.options.load_paths {
+            if path.is_dir() {
+                try_path!(path.join(format!("{}.scss", name.to_str().unwrap())));
+                try_path!(path.join(format!("_{}.scss", name.to_str().unwrap())));
+                try_path!(path.join("index.scss"));
+                try_path!(path.join("_index.scss"));
+            } else {
+                try_path!(path.to_path_buf());
+                try_path!(path.with_file_name(name).with_extension("scss"));
+                try_path!(path
+                    .with_file_name(format!("_{}", name.to_str().unwrap()))
+                    .with_extension("scss"));
+                try_path!(path.join("index.scss"));
+                try_path!(path.join("_index.scss"));
             }
         }
 
