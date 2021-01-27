@@ -1,3 +1,7 @@
+# 0.11.0
+
+- `fs` option added to allow interception and reimplementation of all file system operations (such as imports)
+
 # 0.10.4
 
  - plain css `invert(..)` accepts numbers with any unit

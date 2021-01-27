@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fs, path::Path, path::PathBuf};
+use std::{ffi::OsStr, path::Path, path::PathBuf};
 
 use codemap::{Span, Spanned};
 use peekmore::PeekMore;
@@ -46,7 +46,7 @@ impl<'a> Parser<'a> {
         macro_rules! try_path {
             ($name:expr) => {
                 let name = $name;
-                if name.is_file() {
+                if self.options.fs.is_file(&name) {
                     return Some(name);
                 }
             };
@@ -61,7 +61,7 @@ impl<'a> Parser<'a> {
         try_path!(path_buf.join("_index.scss"));
 
         for path in &self.options.load_paths {
-            if path.is_dir() {
+            if self.options.fs.is_dir(path) {
                 try_path!(path.join(format!("{}.scss", name.to_str().unwrap())));
                 try_path!(path.join(format!("_{}.scss", name.to_str().unwrap())));
                 try_path!(path.join("index.scss"));
@@ -90,7 +90,7 @@ impl<'a> Parser<'a> {
         if let Some(name) = self.find_import(path) {
             let file = self.map.add_file(
                 name.to_string_lossy().into(),
-                String::from_utf8(fs::read(&name)?)?,
+                String::from_utf8(self.options.fs.read(&name)?)?,
             );
             return Parser {
                 toks: &mut Lexer::new(&file)

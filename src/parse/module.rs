@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, fs};
+use std::convert::TryFrom;
 
 use codemap::Spanned;
 use peekmore::PeekMore;
@@ -111,9 +111,10 @@ impl<'a> Parser<'a> {
                 if let Some(import) = self.find_import(name.as_ref()) {
                     let mut global_scope = Scope::new();
 
-                    let file = self
-                        .map
-                        .add_file(name.to_owned(), String::from_utf8(fs::read(&import)?)?);
+                    let file = self.map.add_file(
+                        name.to_owned(),
+                        String::from_utf8(self.options.fs.read(&import)?)?,
+                    );
 
                     let stmts = Parser {
                         toks: &mut Lexer::new(&file)
