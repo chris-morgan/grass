@@ -6,7 +6,6 @@ use std::{
 
 use clap::{arg_enum, App, AppSettings, Arg};
 
-#[cfg(not(feature = "wasm"))]
 use grass::{from_path, from_string, Options};
 
 arg_enum! {
@@ -25,10 +24,6 @@ arg_enum! {
     }
 }
 
-#[cfg(feature = "wasm")]
-fn main() {}
-
-#[cfg(not(feature = "wasm"))]
 #[cfg_attr(feature = "profiling", inline(never))]
 fn main() -> std::io::Result<()> {
     let matches = App::new("grass")

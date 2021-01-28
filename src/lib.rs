@@ -295,7 +295,6 @@ fn raw_to_parse_error(map: &CodeMap, err: Error, unicode: bool) -> Box<Error> {
 /// (grass does not currently allow files or paths that are not valid UTF-8)
 #[cfg_attr(feature = "profiling", inline(never))]
 #[cfg_attr(not(feature = "profiling"), inline)]
-#[cfg(not(feature = "wasm"))]
 pub fn from_path(p: &str, options: &Options) -> Result<String> {
     let mut map = CodeMap::new();
     let file = map.add_file(p.into(), String::from_utf8(options.fs.read(Path::new(p))?)?);
@@ -342,11 +341,11 @@ pub fn from_path(p: &str, options: &Options) -> Result<String> {
 /// ```
 #[cfg_attr(feature = "profiling", inline(never))]
 #[cfg_attr(not(feature = "profiling"), inline)]
-#[cfg(not(feature = "wasm"))]
 pub fn from_string(p: String, options: &Options) -> Result<String> {
     let mut map = CodeMap::new();
     let file = map.add_file("stdin".into(), p);
     let empty_span = file.span.subspan(0, 0);
+
     let stmts = Parser {
         toks: &mut Lexer::new(&file)
             .collect::<Vec<Token>>()
@@ -378,38 +377,7 @@ pub fn from_string(p: String, options: &Options) -> Result<String> {
 }
 
 #[cfg(feature = "wasm")]
-#[wasm_bindgen]
-pub fn from_string(p: String) -> std::result::Result<String, JsValue> {
-    let mut map = CodeMap::new();
-    let file = map.add_file("stdin".into(), p);
-    let empty_span = file.span.subspan(0, 0);
-
-    let stmts = Parser {
-        toks: &mut Lexer::new(&file)
-            .collect::<Vec<Token>>()
-            .into_iter()
-            .peekmore(),
-        map: &mut map,
-        path: Path::new(""),
-        scopes: &mut Scopes::new(),
-        global_scope: &mut Scope::new(),
-        super_selectors: &mut NeverEmptyVec::new(Selector::new(empty_span)),
-        span_before: empty_span,
-        content: &mut Vec::new(),
-        flags: ContextFlags::empty(),
-        at_root: true,
-        at_root_has_selector: false,
-        extender: &mut Extender::new(empty_span),
-        content_scopes: &mut Scopes::new(),
-        options: &Options::default(),
-        modules: &mut Modules::default(),
-        module_config: &mut ModuleConfig::default(),
-    }
-    .parse()
-    .map_err(|e| raw_to_parse_error(&map, *e, true).to_string())?;
-
-    Ok(Css::from_stmts(stmts, false, true)
-        .map_err(|e| raw_to_parse_error(&map, *e, true).to_string())?
-        .pretty_print(&map)
-        .map_err(|e| raw_to_parse_error(&map, *e, true).to_string())?)
+#[wasm_bindgen(js_name = from_string)]
+pub fn from_string_js(p: String) -> std::result::Result<String, JsValue> {
+    from_string(Options::default()).map_err(|e| e.to_string())
 }
