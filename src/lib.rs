@@ -284,20 +284,14 @@ fn raw_to_parse_error(map: &CodeMap, err: Error, unicode: bool) -> Box<Error> {
     Box::new(Error::from_loc(message, map.look_up_span(span), unicode))
 }
 
-/// Compile CSS from a path
-///
-/// ```
-/// fn main() -> Result<(), Box<grass::Error>> {
-///     let sass = grass::from_path("input.scss", &grass::Options::default())?;
-///     Ok(())
-/// }
-/// ```
-/// (grass does not currently allow files or paths that are not valid UTF-8)
-#[cfg_attr(feature = "profiling", inline(never))]
-#[cfg_attr(not(feature = "profiling"), inline)]
-pub fn from_path(p: &str, options: &Options) -> Result<String> {
+fn from_string_with_path(
+    source: String,
+    map_path: &str,
+    parser_path: &str,
+    options: &Options,
+) -> Result<String> {
     let mut map = CodeMap::new();
-    let file = map.add_file(p.into(), String::from_utf8(options.fs.read(Path::new(p))?)?);
+    let file = map.add_file(map_path.into(), source);
     let empty_span = file.span.subspan(0, 0);
 
     let stmts = Parser {
@@ -306,7 +300,7 @@ pub fn from_path(p: &str, options: &Options) -> Result<String> {
             .into_iter()
             .peekmore(),
         map: &mut map,
-        path: p.as_ref(),
+        path: parser_path.as_ref(),
         scopes: &mut Scopes::new(),
         global_scope: &mut Scope::new(),
         super_selectors: &mut NeverEmptyVec::new(Selector::new(empty_span)),
@@ -330,6 +324,26 @@ pub fn from_path(p: &str, options: &Options) -> Result<String> {
         .map_err(|e| raw_to_parse_error(&map, *e, options.unicode_error_messages))
 }
 
+/// Compile CSS from a path
+///
+/// ```
+/// fn main() -> Result<(), Box<grass::Error>> {
+///     let sass = grass::from_path("input.scss", &grass::Options::default())?;
+///     Ok(())
+/// }
+/// ```
+/// (grass does not currently allow files or paths that are not valid UTF-8)
+#[cfg_attr(feature = "profiling", inline(never))]
+#[cfg_attr(not(feature = "profiling"), inline)]
+pub fn from_path(p: &str, options: &Options) -> Result<String> {
+    from_string_with_path(
+        String::from_utf8(options.fs.read(Path::new(p))?)?,
+        p,
+        p,
+        options,
+    )
+}
+
 /// Compile CSS from a string
 ///
 /// ```
@@ -342,38 +356,7 @@ pub fn from_path(p: &str, options: &Options) -> Result<String> {
 #[cfg_attr(feature = "profiling", inline(never))]
 #[cfg_attr(not(feature = "profiling"), inline)]
 pub fn from_string(p: String, options: &Options) -> Result<String> {
-    let mut map = CodeMap::new();
-    let file = map.add_file("stdin".into(), p);
-    let empty_span = file.span.subspan(0, 0);
-
-    let stmts = Parser {
-        toks: &mut Lexer::new(&file)
-            .collect::<Vec<Token>>()
-            .into_iter()
-            .peekmore(),
-        map: &mut map,
-        path: Path::new(""),
-        scopes: &mut Scopes::new(),
-        global_scope: &mut Scope::new(),
-        super_selectors: &mut NeverEmptyVec::new(Selector::new(empty_span)),
-        span_before: empty_span,
-        content: &mut Vec::new(),
-        flags: ContextFlags::empty(),
-        at_root: true,
-        at_root_has_selector: false,
-        extender: &mut Extender::new(empty_span),
-        content_scopes: &mut Scopes::new(),
-        options,
-        modules: &mut Modules::default(),
-        module_config: &mut ModuleConfig::default(),
-    }
-    .parse()
-    .map_err(|e| raw_to_parse_error(&map, *e, options.unicode_error_messages))?;
-
-    Css::from_stmts(stmts, false, options.allows_charset)
-        .map_err(|e| raw_to_parse_error(&map, *e, options.unicode_error_messages))?
-        .pretty_print(&map)
-        .map_err(|e| raw_to_parse_error(&map, *e, options.unicode_error_messages))
+    from_string_with_path(p, "stdin", "", options)
 }
 
 #[cfg(feature = "wasm-exports")]
