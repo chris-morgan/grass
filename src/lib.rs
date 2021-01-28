@@ -93,7 +93,7 @@ grass input.scss
 
 use std::path::Path;
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "wasm-exports")]
 use wasm_bindgen::prelude::*;
 
 pub(crate) use beef::lean::Cow;
@@ -376,7 +376,7 @@ pub fn from_string(p: String, options: &Options) -> Result<String> {
         .map_err(|e| raw_to_parse_error(&map, *e, options.unicode_error_messages))
 }
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "wasm-exports")]
 #[wasm_bindgen(js_name = from_string)]
 pub fn from_string_js(p: String) -> std::result::Result<String, JsValue> {
     from_string(Options::default()).map_err(|e| e.to_string())
